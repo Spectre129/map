@@ -11,33 +11,147 @@
           padding: 0;
           margin: 0;
       }
-      html, body, #map {
+      html, body {
           height: 100%;
           width: 100vw;
       }
+    #playBtn {
+        height: 50px;
+        width: 100%;
+        font-size: 18px;
+        background-color: aqua;
+    }
+
+    #map {
+        height: calc(100% - 50px);
+        width: 100%;
+    }
     </style>
 
   </head>
     <body>
+        <button id = "playBtn">Play Route</button>
+
         <div id = "map">
         </div>
         
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
         <script>
-            const map = L.map("map").setView([56.462, -2.971], 13);
+            const map = L.map("map").setView([56.462, -2.971], 7);
 
-            L.tileLayer(
-                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                {
-                    maxZoom: 19,
-                    attribution: "&copy; OpenStreetMap contributors"
+        L.tileLayer(
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                maxZoom: 19,
+                attribution: "&copy; OpenStreetMap contributors"
+            }
+        ).addTo(map);
+
+        const locations = [
+            {
+                name: "Union Square",
+                date: "10/02/2024",
+                lat: 57.1431627,
+                lng: -2.0964241
+            },
+            {
+                name: "Cartoos Shisha",
+                date: "10/02/2024",
+                lat: 57.1509614,
+                lng: -2.0782614
+            },
+            {
+              name: "Aberdeen Art Gallery",
+              date: "8/03/2024",
+              lat: 57.1481374,
+              lng: -2.102721
+            },
+            {
+              name: "Seabrae Park (location of one of my fav photos)",
+              date: "15/04/2024",
+              lat: 56.4558274,
+              lng: -2.9800116
+            }
+        ];
+
+        locations.sort((a, b) => {
+            return new Date(a.date) - new Date(b.date);
+        });
+
+        const markerLayer = L.layerGroup().addTo(map);
+
+        const routeLine = L.polyline([], {
+            weight: 5
+        }).addTo(map);
+
+        const playButton = document.getElementById("playBtn");
+
+        let currentLocation = 0;
+        let animationTimer = null;
+
+        function showLocation(index) {
+            const location = locations[index];
+
+            L.marker([location.lat, location.lng])
+                .addTo(markerLayer)
+                .bindPopup(`
+                    <strong>${location.name}</strong><br>
+                    ${location.date}
+                `)
+                .openPopup();
+
+            routeLine.addLatLng([
+                location.lat,
+                location.lng
+            ]);
+
+            map.panTo([
+                location.lat,
+                location.lng
+            ]);
+        }
+
+        playButton.addEventListener("click", () => {
+            if (animationTimer !== null) {
+                clearInterval(animationTimer);
+                animationTimer = null;
+                playButton.textContent = "Continue route";
+                return;
+            }
+
+            if (currentLocation >= locations.length) {
+                markerLayer.clearLayers();
+                routeLine.setLatLngs([]);
+                currentLocation = 0;
+            }
+
+            playButton.textContent = "Pause";
+
+            showLocation(currentLocation);
+            currentLocation++;
+
+            animationTimer = setInterval(() => {
+                if (currentLocation >= locations.length) {
+                    clearInterval(animationTimer);
+                    animationTimer = null;
+                    playButton.textContent = "Replay route";
+                    return;
                 }
-            ).addTo(map);
 
-            const marker = L.marker([56.462, -2.971]).addTo(map);
+                showLocation(currentLocation);
+                currentLocation++;
+            }, 1500);
+        });
 
-            marker.bindPopup("Dundee").openPopup();
+        const allCoordinates = locations.map(location => [
+            location.lat,
+            location.lng
+        ]);
+
+        map.fitBounds(allCoordinates, {
+            padding: [30, 30]
+        });
         </script>
   </body>
 </html>
